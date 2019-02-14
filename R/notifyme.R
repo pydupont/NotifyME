@@ -37,6 +37,6 @@ Notifier <- R6::R6Class("Notifier", public = list(
 )
 )
 
-n <- Notifier$new(env_name = "Test")
-# n$getDevices("o.rDn8jnhhh1BreTpn7pQnl3eLnz7VHi3k")
-n$notify("Test")
+# n <- Notifier$new(env_name = "Test")
+# # n$getDevices("o.rDn8jnhhh1BreTpn7pQnl3eLnz7VHi3k")
+# n$notify("Test")
