@@ -5,40 +5,38 @@
 
 Notifier <- R6::R6Class("Notifier", public = list(
   env_name = NA,
-  bot_token = NULL,
-  bot = NULL,
-  chat_id = NULL,
-  telegram_bot = F,
 
-  initialize = function(env_name = NA){
+  initialize = function(env_name = NA, key = NA){
+    library(RPushbullet)
     stopifnot(is.character(env_name), length(env_name) == 1)
     self$env_name <- env_name
-    bot_name <- 'rnotifbot'
-    self$bot_token <-  telegram.bot::bot_token(bot_name)
-    self$chat_id <- Sys.getenv(paste0("R_TELEGRAM_BOT_", bot_name, "_CHAT_ID"))
-    if(nchar(self$bot_token) == 0 || nchar(self$chat_id) == 0){
-      self$telegram_bot = F
-    } else{
-      self$telegram_bot = T
+    if(!file.exists("~/.rpushbullet.json")){
+      if(!is.na(key)){
+        getDevices()
+      }else{
+        stop("Key must be given if the file ~/.rpushbullet.json doesn't exist")
+      }
     }
-    if(self$telegram_bot){
-      self$bot <- telegram.bot::Bot(token = self$bot_token)
-    }
-
+  },
+  getDevices = function(key){
+    h <- curl::new_handle()
+    curl::handle_setheaders(h, "Access-Token" =  key)
+    req <- curl::curl_fetch_memory("https://api.pushbullet.com/v2/devices", handle = h)
+    data <- jsonlite::fromJSON(rawToChar(req$content))
+    devices <- data$devices
+    devices <- dplyr::filter(devices, active == TRUE & pushable == TRUE)
+    write(jsonlite::toJSON(list(key=unbox("o.rDn8jnhhh1BreTpn7pQnl3eLnz7VHi3k"), devices=devices$iden, names=devices$nickname), pretty=TRUE), file = "~/.rpushbullet.json")
+    detach("package:RPushbullet", unload=TRUE)
+    library(RPushbullet)
+    pbPost("note", title="Success", body="Devices successfully found.")
   },
   notify = function(message){
-    if(self$telegram_bot){
-      message <- sprintf("%s - %s - %s", self$env_name, date(), message)
-      self$bot$sendMessage(text=message, chat_id=self$chat_id)
-    }else{
-      beepr::beep()
-    }
+      message <- sprintf("%s\n%s", date(), message)
+      pbPost("note", title=self$env_name, body=message)
   }
 )
 )
 
-# n <- Notifier$new(env_name = "Test")
-# n$env_name
-# n$bot_token
-# n$chat_id
-# n$notify("Test")
+n <- Notifier$new(env_name = "Test")
+# n$getDevices("o.rDn8jnhhh1BreTpn7pQnl3eLnz7VHi3k")
+n$notify("Test")
